@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://v8.1c.ru/v8/tech-log">
+
+	<!-- %server-name% -->	
+
+	<!-- SERVER STATE -->
+
+	<log location="%log-path%\admin" history="120">
+		<event>
+			<eq property="name" value="ADMIN"/>
+		</event>
+		<event>
+			<eq property="name" value="ATTN"/>
+		</event>
+		<property name="all"/>
+	</log>
+	
+	<log location="%log-path%\proc" history="24">
+		<event>
+			<eq property="name" value="PROC"/>
+		</event>
+		<event>
+			<eq property="name" value="SCOM"/>
+		</event>
+		<event>
+			<eq property="name" value="MEM"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\lic" history="24">
+		<event>
+			<eq property="name" value="LIC"/>
+		</event>
+		<event>
+			<eq property="name" value="HASP"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+<!--
+	<log location="%log-path%\srvc" history="2">
+		<event>
+			<eq property="name" value="SRVC"/>
+		</event>
+		<property name="all"/>
+	</log>
+-->
+
+	<log location="%log-path%\clstr" history="2">
+		<event>
+			<eq property="name" value="CLSTR"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<!-- SESSIONS -->
+	
+	<log location="%log-path%\start-conn" history="920">
+		<event>
+			<eq property="name" value="SCALL"/>
+			<eq property="MName" value="onStartIBConnection"/>
+			<ne property="t:applicationName" value="BackgroundJob"/>
+		</event>
+		<property name="p:processName"/>
+		<property name="t:applicationName"/>
+		<property name="t:clientID"/>
+		<property name="SessionID"/>
+		<property name="Usr"/>
+	</log>
+
+	<log location="%log-path%\conn" history="24">
+		<event>
+			<eq property="name" value="CONN"/>
+		</event>
+		<event>
+			<eq property="name" value="SESN"/>
+		</event>
+		<property name="all"/>
+	</log>
+	
+	<log location="/home/usr1cv8/log/epf" history="420">
+		<event>
+			<eq property="name" value="CALL"/>
+			<like property="Context" value="Форма.Вызов : ВнешняяОбработка.%"/>
+		</event>
+		<property name="all"/>
+	</log>
+	
+	<!-- ERRORS -->
+	
+	<log location="%log-path%\excp" history="120">
+		<event>
+			<eq property="name" value="QERR"/>
+		</event>
+		<event>
+			<eq property="name" value="EXCP"/>
+		</event>
+		<event>
+			<eq property="name" value="EXCPCNTX"/>
+		</event>
+		<property name="all"/>
+	</log>
+	
+	<!-- LONG EVENTS -->
+	
+	<log location="%log-path%\long-events" history="120">
+		<event>
+			<ne property="name" value=""/>
+			<ne property="name" value="DBMSSQL"/>
+			<ne property="name" value="DBPOSTGRS"/>
+			<ne property="name" value="SDBL"/>
+			<ne property="name" value="CONN"/>
+			<ne property="name" value="SESN"/>
+			<ge property="duration" value="300000"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<!-- LONG EVENTS -->
+	
+	<log location="%log-path%\long-events" history="120">
+		<event>
+			<ne property="name" value=""/>
+			<ne property="name" value="DBMSSQL"/>
+			<ne property="name" value="DBPOSTGRS"/>
+			<ne property="name" value="SDBL"/>
+			<ne property="name" value="CONN"/>
+			<ne property="name" value="SESN"/>
+			<ge property="duration" value="300000"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<!-- DATABASE -->
+	
+	<log location="%log-path%\db-long" history="48">
+		<event>
+			<eq property="name" value="DBMSSQL"/>
+			<gt property="duration" value="10000"/>
+		</event>
+		<event>
+			<eq property="name" value="DBPOSTGRS"/>
+			<gt property="duration" value="10000"/>
+		</event>
+		<property name="all"/>
+		<property name="sql">
+			<event>
+				<gt property="duration" value="100000"/>
+			</event>
+		</property>
+	</log>
+	
+	<log location="%log-path%\sdbl-long" history="48">
+		<event>
+			<eq property="name" value="SDBL"/>
+			<gt property="duration" value="20000"/>
+		</event>
+		<property name="all"/>
+		<property name="sdbl">
+			<event>
+				<gt property="duration" value="200000"/>
+				<ne property="func" value="insertRecords"/>
+			</event>
+		</property>
+	</log>
+	
+	<log location="%log-path%\db-context" history="12">
+		<event>
+			<eq property="name" value="DBMSSQL"/>
+			<gt property="duration" value="50"/>
+		</event>
+		<event>
+			<eq property="name" value="DBPOSTGRS"/>
+			<gt property="duration" value="50"/>
+		</event>
+		<property name="p:processName"/>
+		<property name="Usr"/>
+		<property name="Context"/>
+		<property name="Rows"/>
+		<property name="RowsAffected"/>
+	</log>
+	
+	<log location="%log-path%\sdbl-context" history="12">
+		<event>
+			<eq property="name" value="SDBL"/>
+			<gt property="duration" value="200"/>
+		</event>
+		<property name="p:processName"/>
+		<property name="Usr"/>
+		<property name="Context"/>
+		<property name="Rows"/>
+	</log>
+	
+	<!-- LOCKS -->
+	
+	<log location="%log-path%\locks-troubles" history="120">
+		<event>
+			<eq property="name" value="TTIMEOUT"/>
+		</event>
+		<event>
+			<eq property="name" value="TDEADLOCK"/>
+		</event>
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<gt property="duration" value="150000"/>
+		</event>
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<eq property="escalating" value="true"/>
+		</event>
+		<property name="all"/>            
+	</log>	
+
+	<log location="%log-path%\locks-long" history="120">
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<le property="duration" value="150000"/>
+			<gt property="duration" value="50000"/>
+		</event>
+		<property name="all"/>
+	</log>	
+	
+	<log location="%log-path%\locks-2" history="24">
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<le property="duration" value="50000"/>
+			<gt property="duration" value="5000"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\locks-1" history="12">
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<le property="duration" value="5000"/>
+			<gt property="duration" value="100"/>
+		</event>
+		<property name="p:processName"/>
+		<property name="t:connectID"/>
+		<property name="SessionID"/>
+		<property name="Usr"/>
+		<property name="Context"/>
+		<property name="Regions"/>
+		<property name="WaitConnections"/>		
+	</log>
+	
+	<log location="%log-path%\locks-0" history="2">
+		<event>
+			<eq property="name" value="TLOCK"/>
+			<le property="duration" value="100"/>
+		</event>
+		<property name="p:processName"/>
+		<property name="SessionID"/>
+		<property name="t:connectID"/>
+		<property name="Usr"/>
+		<property name="Regions"/>
+		<property name="WaitConnections"/>		
+	</log>
+
+	<!-- CALL -->
+
+	<log location="%log-path%\calls-long" history="48">
+		<event>
+			<eq property="name" value="CALL"/>
+			<gt property="duration" value="10000"/>
+		</event>
+		<property name="all"/>
+	</log>
+	
+	<!-- CALL MEM GRATER 100MB -->
+	<log location="%log-path%\calls-mem" history="48">
+		<event>
+			<eq property="name" value="CALL"/>
+			<gt property="memory" value="104857600"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\calls-1" history="12">
+		<event>
+			<eq property="name" value="CALL"/>
+			<le property="duration" value="10000"/>
+			<gt property="duration" value="100"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\calls-0" history="2">
+		<event>
+			<eq property="name" value="CALL"/>
+			<ne property="process" value="rmngr"/>
+			<le property="duration" value="100"/>
+			<gt property="CpuTime" value="0"/>
+		</event>
+		<property name="process"/>
+		<property name="p:processName"/>
+		<property name="t:applicationName"/>
+		<property name="SessionID"/>
+		<property name="t:connectID"/>
+		<property name="Usr"/>
+		<property name="IName"/>
+		<property name="MName"/>
+		<property name="Method"/>
+		<property name="Context"/>
+		<property name="Memory"/>
+		<property name="CpuTime"/>
+	</log>
+	
+	<log location="%log-path%\call-0-rmngr" history="2">
+		<event>
+			<eq property="name" value="CALL"/>
+			<eq property="process" value="rmngr"/>
+			<le property="duration" value="100"/>
+			<gt property="duration" value="10"/>
+			<gt property="CpuTime" value="0"/>
+		</event>
+		<property name="process"/>
+		<property name="IName"/>
+		<property name="MName"/>
+		<property name="Memory"/>
+		<property name="CpuTime"/>
+	</log>
+
+	<!-- SCALL -->
+
+	<log location="%log-path%\scalls-long" history="48">
+		<event>
+			<eq property="name" value="SCALL"/>
+			<gt property="duration" value="10000"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\scalls-1" history="12">
+		<event>
+			<eq property="name" value="SCALL"/>
+			<le property="duration" value="10000"/>
+			<gt property="duration" value="100"/>
+		</event>
+		<property name="all"/>
+	</log>
+
+	<log location="%log-path%\scalls-0" history="2">
+		<event>
+			<eq property="name" value="SCALL"/>
+			<le property="duration" value="100"/>
+			<ge property="duration" value="10"/>
+		</event>
+		<property name="process"/>
+		<property name="p:processName"/>
+		<property name="t:applicationName"/>
+		<property name="SessionID"/>
+		<property name="t:connectID"/>
+		<property name="Usr"/>
+	</log>
+
+</config>

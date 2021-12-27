@@ -1,0 +1,36 @@
+cat %log-path% | 
+sed -r '/^p_[0-9]+: /d' | 
+perl -pe '
+	s/\xef\xbb\xbf//g;
+	s/\n/@/g;
+	s/\s/ /g;
+	s/^[0-9]+:[0-9]+\.[0-9]+-[0-9]+,Context,.,Context=/,Context=/;
+	s/,Rows=[0-9]+//;
+	s/,RowsAffected=[-0-9]+//;
+	s/,[0-9],p:processName=//;
+	s/pg_temp.tt[0-9]+/pg_temp/g;
+	s/DBPOSTGRS,.,.+?,Sql=/DBPOSTGRSSql=/;
+	s/^[0-9]+:[0-9]+.[0-9]+-/<NL>/;
+	s/[\S]{30,82}::bytea/<REFID>/g;
+	s/\S20[0-9]+-[0-9]+-[0-9]+\s[0-9]+:[0-9]+:[0-9]+\S::timestamp/<TIMESTAMP>/g;
+' | 
+gawk -F'DBPOSTGRS' -vRS='<NL>' '
+{
+	if ($2 !~ /^$/)
+	{
+		DurTotal+=$1
+		Dur[$2]+=$1
+		Execs[$2]+=1
+	}
+}
+END {
+	for (i in Dur) {
+		TotalSec+=Dur[i]/1000000g
+		printf "%.3f=TotalDurationSec,%.1f=Prc,%.3f=AvgDurationSec,%d=Execs,%s\n", Dur[i]/1000000,100*Dur[i]/DurTotal,(Dur[i]/Execs[i])/1000000,Execs[i],i
+	}
+	printf "%.3f=TotalSec", DurTotal/1000000
+}
+' | 
+sort -rnb | 
+head -n 100 | 
+perl -pe 's/@/\n/g'

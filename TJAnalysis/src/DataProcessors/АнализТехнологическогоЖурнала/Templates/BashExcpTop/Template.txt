@@ -1,0 +1,54 @@
+timefilter="" # "^5[0-9]:"
+
+cat %log-path% | 
+perl -ne '
+s/\xef\xbb\xbf//;
+s/\n/<nline>/;
+s/\r/<rline>/;
+if (/^\d\d:\d\d\.\d+-\d+,Context,/) {
+    s/^\d\d:\d\d\.\d+-\d+,Context,.*,Context=/,Context=/;
+}
+if (/^\d\d:\d\d\.\d+-\d+,/) {
+    if ($e) {print "$e\n";}
+    $e = $_;
+}
+else {$e .= $_;}
+END {print "$e\n";}
+' |
+grep -P "$timefilter" |
+perl -pe '
+s/(.*)/<SEP>\1/;
+s/(.*),Descr=((["\x27]?).*?\3)[<,](.*)/Descr=\2,\1,\4/;
+s/(.*),Usr=(.*)[<,](\S+?)/Usr=\2,\1,\3/;
+s/(.*),p\:processName=(\S+?)[<,](.*)/p:processName=\2,\1,\3/;
+s/(.*),process=(\w+?)[<,](.*)/process=\2,\1,\3/;
+s/[-0-9a-f]{36}/<guid>/g;
+s/OSThread=\d+,//g;
+s/ClientID=\d+,//g;
+s/127.0.0.1:\d+//g;
+s/,rline>/<rline>/;
+s/,<SEP>/<SEP>/;
+' |
+perl -pe '
+s!/src/\w+?\.(cpp|h)\(\d+\)!/src/<module>!g;
+s!Descr=(["\x27]?).*/proc/[0-9]+/status.*(\1)!Descr=/proc/<PID>/status!g;
+' |
+awk -F'<SEP>' '
+{
+    cnt+=1
+    r_cnt[$1]+=1
+	r_txt[$1]=$2
+}
+END {
+	printf "100.0=Prc,%d=TotalExcp,%d=NumVariousExcp<nline>\n", cnt, length(r_cnt)
+    for (g in r_cnt) {
+		r_val = r_cnt[g]
+		printf "%.1f=Prc,%d=Excp,%s<nline>%s<nline>\n", (100 * r_val / cnt), r_val, g, r_txt[g]
+    }
+}
+' |
+sort -rhb | head -10 |
+sed -r '
+s/<nline>/\n/g
+s/<rline>/\r/g
+'

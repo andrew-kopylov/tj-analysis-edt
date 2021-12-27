@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#eventfilter="CALL|TLOCK"
+eventfilter=""
+
+cat %log-path% |
+grep -P "$eventfilter" |
+sed -nr '
+# Event to: Minute Second Duration Event
+s/^([0-9][0-9]):([0-9][0-9])\.[0-9]+\-([0-9]+),(\w+),.*/\1 \2 \3 \4/p
+' |
+awk '
+BEGIN {sep = "\t"}
+{
+	# Parameters
+    Minute = "M-" $1
+    Second = "S-" $2
+    Duration = $3
+    Event = $4
+    # Calculations
+    TDur += Duration
+    TCnt += 1
+    EDur[Event] += Duration
+    ECnt[Event] += 1
+    EMDur[Event][Minute] += Duration
+    EMCnt[Event][Minute] += 1
+
+}                    
+END {
+    # Headers
+    printf "%s"sep"DurMs"sep"DurPrc"sep"Cnt"sep"CntPrc\n", "Time" sep "Event"
+    # Total
+    format = "%s" sep "%s" sep "%.1f" sep "%.1f" sep "%d" sep "%.1f\n"
+    printf format, "Total", "ALL", TDur/1000, 100, TCnt, 100
+    # Total by Events
+    for (e in EDur) {
+        if (TDur > 0) DurPrc=100*EDur[e]/TDur
+        if (TCnt > 0) CntPrc=100*ECnt[e]/TCnt
+        printf format, "Total", e, EDur[e]/1000, DurPrc, ECnt[e], CntPrc
+    }
+    # Events & Minutes
+    for (e in EDur) {
+        for (m in EMDur[e]) {
+            ETDur = EDur[e]
+            ETCnt = ECnt[e]
+            if (ETDur > 0) DurPrc=100*EMDur[e][m]/ETDur
+            if (ETCnt > 0) CntPrc=100*EMCnt[e][m]/ETCnt
+            printf format, m, e, EMDur[e][m]/1000, DurPrc, EMCnt[e][m], CntPrc | "sort -u"
+        }
+    }
+
+}' |
+sed -r '
+# Substitute digit separtor
+s/([0-9]+)\.([0-9]+)/\1,\2/g
+'

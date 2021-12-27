@@ -1,0 +1,99 @@
+timefilter="" # "^5[0-9]:"
+
+cat %log-path% | \
+perl -ne '
+# Delete BOM
+s/\xef\xbb\xbf//;
+# Substitute end \n\r
+s/\n/<nline>/;
+s/\r/<rline>/;
+
+# Context event as part of precedence event. 
+if (/^\d\d:\d\d\.\d+-\d+,Context,/) {
+    s/^\d\d:\d\d\.\d+-\d+,Context,.*,Context=/,Context=/;
+}
+# Check start event.
+if (/^\d\d:\d\d\.\d+-\d+,/) {
+    if ($e) {print "$e\n";}
+    $e = $_;
+}
+else {$e .= $_;}
+# Out tail
+END {print "$e\n";}
+' |
+grep -P "$timefilter" |
+perl -ne '
+
+# <RES>duration<RES>...
+if (! s/(^\d\d:\d\d\.\d+)-(\d+),(.*)/<RES>\2<RES>,\1,\3/) {goto EXIT}
+
+# <RES>resource<RES><RES>duration<RES>...
+if (! s/(.*),Memory=(-?\d+)[<,](.*)/<RES>\2<RES>,\1,\3/) {goto EXIT}
+
+# Get context
+$sres = s/(.*),Context=((["\x27]?).*?\3)[<,](.*)/Context=\2,\1,\4/;
+
+# Try get module, if context doesn,t exists
+if (! $sres) {
+    $sres = s/(.*),Module=(.*,Method=.*?)[<,](.*)/Module=\2,\1,\3/;
+};
+
+# Try get IName & MName 
+if (! $sres) {
+    s/(.*),MName=(\w+?)[<,\$](.*)/MName=\2,\1,\3/;
+    s/(.*),IName=(\w+?)[<,\$](.*)/IName=\2,\1,\3/;
+};
+
+# Try get detalization
+s/(.*),Usr=(.*?)[<,\$](.*)/Usr=\2,\1,\3/;
+s/(.*),t:applicationName=(.*?)[<,\$](.*)/t:applicationName=\2,\1,\3/;
+s/(.*),p:processName=(.*?)[<,\$](.*)/p:processName=\2,\1,\3/;
+s/(.*),process=(\w+?)[<,\$](.*)/process=\2,\1,\3/;
+
+# Delete service marks and tail.
+s/<RES>,<RES>/<RES>/;
+s/,<RES>/<RES>/;
+s/<RES>,\d\d:\d\d.*//;
+
+#GROUP<RES>resource<RES>durations
+print $_;
+
+EXIT:
+' |
+awk -F'<RES>' '
+{
+    l_grp = $1
+    l_mem = $2
+    l_dur = $3
+    if (l_mem < 0) {l_mem = -l_mem}
+	# Counts, Duration, Resources: sum and total.
+    cnt_total  += 1
+    cnt[l_grp] += 1
+    dur_total  += l_dur
+    dur[l_grp] += l_dur
+    mem_total  += l_mem
+    mem[l_grp] += l_mem
+}
+END {
+    mem_total = mem_total / 2
+    printf "100.0=prc, %.1f=mem.mb\n", mem_total / 1024 / 1024
+    for (g in cnt) {
+        # Check res values.
+        g_mem = mem[g] / 2
+        g_cnt = cnt[g]
+        g_dur = dur[g]
+        if (g_cnt && mem_total) {} else {countinue}
+        printf "%.1f=prc, %.1f=mem.mb, %.1f=av.mem.kb, %.2f=av.dur.s, %d=Execs, %s\n",
+            (100   * g_mem / mem_total),
+            (g_mem / 1024  / 1024),
+            (g_mem / g_cnt / 1024),
+            (g_dur / g_cnt / 1000000),
+            (g_cnt), g
+    }
+}
+' |
+sort -rhb | head -10 | \
+sed -r '
+s/<nline>/\n/g
+s/<rline>/\r/g
+'
